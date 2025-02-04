@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Newton's Laws - Interactive Physics</title>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a1a, #2c3e50);
+            color: #ffffff;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 50px 0;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: #3498db;
+        }
+
+        .law-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s;
+        }
+
+        .law-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .law-title {
+            color: #3498db;
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        .example {
+            background: rgba(52, 152, 219, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 15px 30px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-size: 1.2rem;
+            margin-top: 30px;
+            transition: transform 0.3s, background 0.3s;
+        }
+
+        .cta-button:hover {
+            background: #2980b9;
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .law-card {
+                padding: 20px;
+            }
+
+            .law-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Newton's Laws of Motion</h1>
+            <p>Explore the fundamental principles that govern motion in our universe</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="law-card" data-aos="fade-up">
+            <h2 class="law-title">First Law: Law of Inertia</h2>
+            <p>An object will remain at rest or in uniform motion in a straight line unless acted upon by an external force.</p>
+            <div class="example">
+                <h3>Example:</h3>
+                <p>A book lying on a table stays there until someone moves it. When you're in a moving car and it suddenly stops, you feel pushed forward because your body wants to stay in motion.</p>
+            </div>
+        </div>
+
+        <div class="law-card" data-aos="fade-up">
+            <h2 class="law-title">Second Law: F = ma</h2>
+            <p>The acceleration of an object is directly proportional to the net force acting on it and inversely proportional to its mass.</p>
+            <div class="example">
+                <h3>Example:</h3>
+                <p>Pushing a shopping cart - the same force will make an empty cart accelerate faster than a full one due to the difference in mass.</p>
+            </div>
+        </div>
+
+        <div class="law-card" data-aos="fade-up">
+            <h2 class="law-title">Third Law: Action-Reaction</h2>
+            <p>For every action, there is an equal and opposite reaction.</p>
+            <div class="example">
+                <h3>Example:</h3>
+                <p>When a bird flaps its wings downward (action), the air pushes the bird upward (reaction), allowing it to fly.</p>
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="newton-laws.html" class="cta-button" data-aos="zoom-in">Try the Interactive Simulator</a>
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({
+            duration: 1000,
+            once: true
+        });
+    </script>
+</body>
+</html></div>

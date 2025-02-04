@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <!-- Ensure proper scaling on mobile devices -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced Newton Simulator</title>
+  <style>
+    body { 
+      margin: 0; 
+      overflow: hidden; 
+      touch-action: none; 
+      background-color: #f0f0f0; 
+      font-family: Arial, sans-serif;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    body.dark-mode {
+      background-color: #222;
+      color: #ddd;
+    }
+    canvas { 
+      display: block; 
+    }
+    #ui {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.85);
+      padding: 15px;
+      border-radius: 10px;
+      color: white;
+      z-index: 110;
+      max-width: 350px;
+      width: 90%;
+    }
+    .control-group { 
+      margin: 10px 0; 
+    }
+    button {
+      background: #2196F3;
+      border: none;
+      color: white;
+      padding: 8px 15px;
+      border-radius: 4px;
+      margin: 5px 0;
+      cursor: pointer;
+      width: 100%;
+    }
+    input[type="range"],
+    select {
+      width: 100%;
+    }
+    input[type="checkbox"] {
+      margin-right: 5px;
+    }
+    #guide {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.95);
+      padding: 20px;
+      border-radius: 15px;
+      color: white;
+      max-width: 90%;
+      display: block;
+      z-index: 120;
+    }
+    #kineticEnergyDisplay {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      z-index: 105;
+    }
+    /* Graph canvases */
+    #dataGraph, #momentumGraph, #accelerationGraph {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(255,255,255,0.8);
+      border: 1px solid #ccc;
+      z-index: 105;
+      margin-bottom: 5px;
+    }
+    #dataGraph { height: 150px; width: 300px; }
+    #momentumGraph { height: 150px; width: 300px; bottom: 170px; }
+    #accelerationGraph { height: 150px; width: 300px; bottom: 330px; }
+    /* Media Query for smaller screens */
+    @media (max-width: 600px) {
+      #ui {
+        top: 5px;
+        left: 5px;
+        padding: 10px;
+        max-width: 95%;
+      }
+      button {
+        padding: 6px 10px;
+        font-size: 0.9em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Audio element for collision sound (provide collision.mp3 file) -->
+  <audio id="collisionSound" src="collision.mp3" preload="auto"></audio>
+
+  <!-- User Interface -->
+  <div id="ui">
+    <button onclick="toggleGuide()" title="Show or hide the guide">Help &amp; Laws</button>
+    <div class="control-group">
+      <label for="scenario" title="Select a scenario to explore">Select a Law:</label>
+      <select id="scenario" onchange="changeScenario()" title="Choose a scenario">
+        <!-- Default scenario is set to 1 -->
+        <option value="1" selected>1st Law: Inertia</option>
+        <option value="2">2nd Law: F = ma</option>
+        <option value="3">3rd Law: Action-Reaction</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label for="gravitySelect" title="Choose the gravitational field">Gravitational Field:</label>
+      <select id="gravitySelect" onchange="setGravityField(this.value)" title="Select gravitational acceleration">
+        <option value="9.8">Earth (9.8 m/s²)</option>
+        <option value="1.62">Moon (1.62 m/s²)</option>
+        <option value="3.71">Mars (3.71 m/s²)</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label title="Toggle gravity on or off">
+        <input type="checkbox" id="gravityCheckbox" onchange="toggleGravity()" checked> Enable Gravity
+      </label>
+    </div>
+    <div class="control-group">
+      <label for="frictionSlider" title="Adjust the friction (surface resistance)">Friction:</label>
+      <input type="range" id="frictionSlider" min="0" max="1" step="0.01" value="0.10" oninput="setFriction(this.value)">
+      <span id="frictionValue">0.10</span>
+    </div>
+    <div class="control-group">
+      <label for="dragSlider" title="Adjust air resistance (drag)">Air Resistance (Drag):</label>
+      <input type="range" id="dragSlider" min="0" max="1" step="0.01" value="0.05" oninput="setDrag(this.value)">
+      <span id="dragValue">0.05</span>
+    </div>
+    <div class="control-group">
+      <label for="forceSlider" title="Control the magnitude of applied forces">Force Strength:</label>
+      <input type="range" id="forceSlider" min="100" max="2000" step="100" value="1000" oninput="setForceValue(this.value)">
+      <span id="forceValue">1000</span>
+    </div>
+    <div class="control-group">
+      <label for="forceDirXSliderBall1" title="Force direction X component for Ball 1">Force Dir X (Ball 1):</label>
+      <input type="range" id="forceDirXSliderBall1" min="-1" max="1" step="0.1" value="0" oninput="setForceDirectionXBall1(this.value)">
+      <span id="forceDirXValueBall1">0.0</span>
+    </div>
+    <div class="control-group">
+      <label for="forceDirYSliderBall1" title="Force direction Y component for Ball 1">Force Dir Y (Ball 1):</label>
+      <input type="range" id="forceDirYSliderBall1" min="-1" max="1" step="0.1" value="0" oninput="setForceDirectionYBall1(this.value)">
+      <span id="forceDirYValueBall1">0.0</span>
+    </div>
+    <div class="control-group">
+      <label for="forceDirXSliderBall2" title="Force direction X component for Ball 2">Force Dir X (Ball 2):</label>
+      <input type="range" id="forceDirXSliderBall2" min="-1" max="1" step="0.1" value="0" oninput="setForceDirectionXBall2(this.value)">
+      <span id="forceDirXValueBall2">0.0</span>
+    </div>
+    <div class="control-group">
+      <label for="forceDirYSliderBall2" title="Force direction Y component for Ball 2">Force Dir Y (Ball 2):</label>
+      <input type="range" id="forceDirYSliderBall2" min="-1" max="1" step="0.1" value="0" oninput="setForceDirectionYBall2(this.value)">
+      <span id="forceDirYValueBall2">0.0</span>
+    </div>
+    <div class="control-group">
+      <label for="massSlider" title="Set the mass of the objects">Ball Mass:</label>
+      <input type="range" id="massSlider" min="1" max="50" step="1" value="10" oninput="setMassValue(this.value)">
+      <span id="massValue">10</span>
+    </div>
+    <div class="control-group">
+      <label for="restitutionSlider" title="Adjust restitution (elasticity) of collisions">Restitution (Elasticity):</label>
+      <input type="range" id="restitutionSlider" min="0" max="1" step="0.01" value="0.80" oninput="setRestitution(this.value)">
+      <span id="restitutionValue">0.80</span>
+    </div>
+    <div class="control-group">
+      <label for="integrationMethod" title="Choose the numerical integration method">Integration Method:</label>
+      <select id="integrationMethod" onchange="setIntegrationMethod(this.value)" title="Select integration method">
+        <option value="Euler">Euler</option>
+        <option value="Verlet">Verlet</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label title="Toggle dark mode for better contrast">
+        <input type="checkbox" id="darkModeCheckbox" onchange="toggleDarkMode()"> Dark Mode
+      </label>
+    </div>
+    <div class="control-group">
+      <label for="objectShape" title="Select the shape of the objects">Object Shape:</label>
+      <select id="objectShape" onchange="setObjectShape(this.value)" title="Choose object shape">
+        <option value="Sphere">Sphere</option>
+        <option value="Cube">Cube</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label for="rotationDampingSlider" title="Adjust rotational damping (friction)">Rotation Damping:</label>
+      <input type="range" id="rotationDampingSlider" min="0.90" max="1" step="0.01" value="0.98" oninput="setRotationDamping(this.value)">
+      <span id="rotationDampingValue">0.98</span>
+    </div>
+    <div class="control-group">
+      <label title="Toggle full 3D mode (allow z–axis motion)">
+        <input type="checkbox" id="threeDModeCheckbox" onchange="toggle3DMode()"> 3D Mode
+      </label>
+    </div>
+    <div class="control-group">
+      <button onclick="exportData()" title="Download simulation data as JSON">Export Data</button>
+    </div>
+    <div class="control-group">
+      <button onclick="applyForceToSelected()" title="Apply force (as defined above) to the selected object">Apply Force to Selected</button>
+      <button onclick="applyForceToBall1()" title="Apply force to Ball 1">Apply Force to Ball 1</button>
+      <button onclick="applyForceToBall2()" title="Apply force to Ball 2">Apply Force to Ball 2</button>
+      <button onclick="resetScene()" title="Reset the simulation">Reset Scene</button>
+    </div>
+  </div>
+
+  <!-- Interactive Guide -->
+  <div id="guide">
+    <h2>Advanced Newton Simulator</h2>
+    <p><b>Overview:</b> This simulator demonstrates Newton’s Laws with realistic collisions, air resistance, rotation, and live data plotting. Use the controls to adjust various simulation parameters.</p>
+    <p><b>Features:</b></p>
+    <ul>
+      <li>Switch between Euler and Verlet integration.</li>
+      <li>Toggle dark mode and 3D mode.</li>
+      <li>Choose object shapes (Sphere or Cube).</li>
+      <li>Adjust friction, drag, restitution, and rotation damping.</li>
+      <li>View live graphs for kinetic energy, momentum, and acceleration.</li>
+      <li>Listen for collision sounds and export simulation data.</li>
+    </ul>
+    <p>📱 Mobile: Touch &amp; drag objects<br>🖥 Desktop: Click &amp; drag objects, scroll to zoom</p>
+    <button onclick="toggleGuide()">Close Guide</button>
+  </div>
+
+  <!-- Kinetic Energy Display -->
+  <div id="kineticEnergyDisplay">Kinetic Energy: <span id="keValue">0</span></div>
+
+  <!-- Data Graph Canvases -->
+  <canvas id="dataGraph" width="300" height="150"></canvas>
+  <canvas id="momentumGraph" width="300" height="150"></canvas>
+  <canvas id="accelerationGraph" width="300" height="150"></canvas>
+
+  <!-- Three.js Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // Global Scene & Simulation Variables
+    let scene, camera, renderer, physicsObjects = [];
+    let selectedObject = null;
+    let simulationRunning = false;
+    let clock = new THREE.Clock();
+
+    // Global Physics Parameters (modifiable via UI)
+    let gravityEnabled = true;
+    let gravityStrength = 9.8;
+    let frictionCoefficient = 0.1;
+    let dragCoefficient = 0.05;
+    let forceStrengthValue = 1000;
+    let ballMassValue = 10;
+    let restitutionCoefficient = 0.8;
+    let forceDirectionXValueBall1 = 0, forceDirectionYBall1 = 0;
+    let forceDirectionXValueBall2 = 0, forceDirectionYBall2 = 0;
+    const maxKineticEnergyDisplay = 1000;
+
+    // Additional Global Options
+    let integrationMethod = "Euler"; // or "Verlet"
+    let objectShape = "Sphere"; // or "Cube"
+    let rotationDamping = 0.98;
+    let threeDMode = false;
+    let darkMode = false;
+
+    // Histories for data graphing
+    let keHistory = [];
+    let momentumHistory = [];
+    let accelerationHistory = [];
+    const maxHistory = 100; // last 100 frames
+
+    // Arrow Helpers for selected object
+    let forceArrow, accelerationArrow, momentumArrow;
+
+    // ----------------- PhysicsBody Class -----------------
+    class PhysicsBody {
+      constructor(mesh, mass = 10, index) {
+        this.mesh = mesh;
+        this.mass = mass;
+        this.velocity = new THREE.Vector3();
+        this.forces = new THREE.Vector3();
+        this.restitution = restitutionCoefficient;
+        this.index = index;
+        // For rotational dynamics
+        this.angularVelocity = 0;
+        this.orientation = 0;
+        this.lastAcceleration = new THREE.Vector3();
+        // For Verlet integration, store previous position
+        this.previousPosition = this.mesh.position.clone();
+      }
+      applyForce(force) {
+        this.forces.add(force);
+      }
+      update(deltaTime) {
+        // --- Linear Dynamics ---
+        if (gravityEnabled) {
+          this.applyForce(new THREE.Vector3(0, -gravityStrength * this.mass, 0));
+        }
+        const frictionForce = this.velocity.clone().setZ(0).setY(0).multiplyScalar(-frictionCoefficient * this.mass);
+        this.applyForce(frictionForce);
+        const dragForce = this.velocity.clone().multiplyScalar(-dragCoefficient * this.velocity.length());
+        this.applyForce(dragForce);
+        const acceleration = this.forces.clone().divideScalar(this.mass);
+        this.lastAcceleration.copy(acceleration);
+
+        if (integrationMethod === "Verlet") {
+          let currentPos = this.mesh.position.clone();
+          let newPos = currentPos.clone().add(currentPos.clone().sub(this.previousPosition)).add(acceleration.clone().multiplyScalar(deltaTime * deltaTime));
+          this.velocity.copy(newPos.clone().sub(this.previousPosition).divideScalar(2 * deltaTime));
+          this.previousPosition.copy(currentPos);
+          this.mesh.position.copy(newPos);
+          if (!threeDMode) this.mesh.position.z = 0;
+        } else {
+          this.velocity.add(acceleration.multiplyScalar(deltaTime));
+          this.mesh.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+          if (!threeDMode) this.mesh.position.z = 0;
+        }
+        this.forces.set(0, 0, 0);
+
+        // --- Rotational Dynamics ---
+        this.orientation += this.angularVelocity * deltaTime;
+        this.angularVelocity *= rotationDamping;
+        if(this.mesh.userData.marker) {
+          this.mesh.userData.marker.rotation.z = this.orientation;
+        }
+      }
+      getKineticEnergy() {
+        return 0.5 * this.mass * this.velocity.lengthSq();
+      }
+      updateColorBasedOnKE(normalizedKE) {
+        const color = new THREE.Color();
+        color.setHSL(0.66 - normalizedKE * 0.66, 1, 0.5);
+        this.mesh.material.color.set(color);
+      }
+    }
+
+    // ----------------- Initialization -----------------
+    function init() {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      document.body.appendChild(renderer.domElement);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+      scene.add(ambientLight);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      dirLight.position.set(5, 10, 10);
+      dirLight.castShadow = true;
+      scene.add(dirLight);
+
+      const gridHelper = new THREE.GridHelper(100, 100, 0x888888, 0x444444);
+      scene.add(gridHelper);
+
+      const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(100, 100),
+        new THREE.MeshStandardMaterial({ color: 0x202020, visible: false })
+      );
+      ground.rotation.x = -Math.PI / 2;
+      ground.receiveShadow = true;
+      scene.add(ground);
+
+      const groundLine = new THREE.Mesh(
+        new THREE.PlaneGeometry(100, 0.1),
+        new THREE.MeshStandardMaterial({ color: 0x555555 })
+      );
+      groundLine.position.y = 0;
+      groundLine.rotation.x = -Math.PI / 2;
+      scene.add(groundLine);
+
+      forceArrow = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(0,0,0), 5, 0xffff00);
+      scene.add(forceArrow);
+      forceArrow.visible = false;
+
+      accelerationArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 5, 0x00ff00);
+      scene.add(accelerationArrow);
+      accelerationArrow.visible = false;
+      momentumArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 5, 0xff00ff);
+      scene.add(momentumArrow);
+      momentumArrow.visible = false;
+
+      // Set default scenario to 1 so balls load on startup
+      currentScenario = 1;
+      simulationRunning = true;
+      setupScenario(currentScenario);
+      toggleGuide(true);
+
+      camera.position.set(0, 10, 50);
+      camera.lookAt(0, 5, 0);
+      setupInputHandlers();
+    }
+
+    // ----------------- Scenario Setup -----------------
+    let currentScenario = 1;
+    function setupScenario(scenario) {
+      currentScenario = scenario;
+      physicsObjects.forEach(b => scene.remove(b.mesh));
+      physicsObjects = [];
+      if (scenario === 0) return;
+      switch(scenario) {
+        case 1:
+          createObject(new THREE.Vector3(-5, 5, 0), ballMassValue, 0xff0000, 1);
+          createObject(new THREE.Vector3(5, 5, 0), ballMassValue, 0x00ff00, 2);
+          break;
+        case 2:
+          createObject(new THREE.Vector3(-5, 5, 0), ballMassValue / 2, 0x0000ff, 1);
+          createObject(new THREE.Vector3(5, 5, 0), ballMassValue * 2, 0xffff00, 2);
+          break;
+        case 3:
+          createObject(new THREE.Vector3(-5, 5, 0), ballMassValue, 0xff00ff, 1);
+          createObject(new THREE.Vector3(5, 5, 0), ballMassValue, 0x00ffff, 2);
+          break;
+      }
+    }
+
+    function createObject(position, mass, color, index) {
+      let mesh;
+      if(objectShape === "Cube") {
+        const geometry = new THREE.BoxGeometry(3, 3, 3);
+        const material = new THREE.MeshStandardMaterial({ color: color, metalness: 0.2, roughness: 0.3 });
+        mesh = new THREE.Mesh(geometry, material);
+      } else {
+        const geometry = new THREE.SphereGeometry(1.5, 32, 32);
+        const material = new THREE.MeshStandardMaterial({ color: color, metalness: 0.2, roughness: 0.3 });
+        mesh = new THREE.Mesh(geometry, material);
+      }
+      mesh.castShadow = true;
+      mesh.position.copy(position);
+
+      const markerGeom = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(1.5, 0, 0)
+      ]);
+      const markerMat = new THREE.LineBasicMaterial({ color: 0xffffff });
+      const markerLine = new THREE.Line(markerGeom, markerMat);
+      mesh.add(markerLine);
+      mesh.userData.marker = markerLine;
+
+      scene.add(mesh);
+      const body = new PhysicsBody(mesh, mass, index);
+      physicsObjects.push(body);
+      return body;
+    }
+
+    // ----------------- Input Handlers -----------------
+    function setupInputHandlers() {
+      renderer.domElement.addEventListener('mousedown', onPointerDown);
+      renderer.domElement.addEventListener('mousemove', onPointerMove);
+      renderer.domElement.addEventListener('mouseup', onPointerUp);
+      renderer.domElement.addEventListener('touchstart', onPointerDown);
+      renderer.domElement.addEventListener('touchmove', onPointerMove);
+      renderer.domElement.addEventListener('touchend', onPointerUp);
+      renderer.domElement.addEventListener('wheel', onMouseWheel);
+    }
+
+    function onPointerDown(event) {
+      event.preventDefault();
+      if (!simulationRunning) return;
+      const coords = getNormalizedCoords(event);
+      selectObject(coords);
+      touchStartTime = Date.now();
+      touchStartPos.set(coords.x, coords.y);
+    }
+
+    function onPointerMove(event) {
+      event.preventDefault();
+      if (!selectedObject || !simulationRunning) return;
+      const coords = getNormalizedCoords(event);
+      const intersection = getGroundIntersection(coords);
+      if (intersection) {
+        if(!threeDMode) intersection.z = 0;
+        selectedObject.mesh.position.copy(intersection);
+      }
+    }
+
+    function onPointerUp(event) {
+      event.preventDefault();
+      if (!selectedObject || !simulationRunning) return;
+      const coords = getNormalizedCoords(event);
+      const delta = new THREE.Vector2().subVectors(coords, touchStartPos);
+      const duration = Date.now() - touchStartTime;
+      selectedObject.velocity.copy(
+        new THREE.Vector3(delta.x * 1.5, delta.y * 1.5, 0).multiplyScalar(20 / duration)
+      );
+      selectedObject = null;
+    }
+
+    function onMouseWheel(event) {
+      camera.position.z += event.deltaY * 0.1;
+    }
+
+    function getNormalizedCoords(event) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      return {
+        x: (((event.clientX || event.touches[0].clientX) - rect.left) / rect.width) * 2 - 1,
+        y: -(((event.clientY || event.touches[0].clientY) - rect.top) / rect.height) * 2 + 1
+      };
+    }
+
+    function selectObject(coords) {
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(new THREE.Vector2(coords.x, coords.y), camera);
+      const intersects = raycaster.intersectObjects(physicsObjects.map(b => b.mesh));
+      if (intersects.length > 0) {
+        selectedObject = physicsObjects.find(b => b.mesh === intersects[0].object);
+      }
+    }
+
+    function getGroundIntersection(coords) {
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(new THREE.Vector2(coords.x, coords.y), camera);
+      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+      const intersection = new THREE.Vector3();
+      raycaster.ray.intersectPlane(plane, intersection);
+      return intersection;
+    }
+
+    // ----------------- Force Application -----------------
+    function applyForceToSelected() {
+      if (!simulationRunning || !selectedObject) return;
+      let forceVector;
+      if (selectedObject.index === 1) {
+        forceVector = new THREE.Vector3(forceDirectionXValueBall1, forceDirectionYBall1, 0)
+          .normalize().multiplyScalar(forceStrengthValue);
+      } else if (selectedObject.index === 2) {
+        forceVector = new THREE.Vector3(forceDirectionXValueBall2, forceDirectionYBall2, 0)
+          .normalize().multiplyScalar(forceStrengthValue);
+      } else return;
+      selectedObject.applyForce(forceVector);
+      forceArrow.position.copy(selectedObject.mesh.position);
+      forceArrowVisualization(forceVector);
+    }
+
+    function applyForceToBall1() {
+      if (!simulationRunning || physicsObjects.length < 1) return;
+      const ball1 = physicsObjects.find(body => body.index === 1);
+      if (!ball1) return;
+      const forceVector = new THREE.Vector3(forceDirectionXValueBall1, forceDirectionYBall1, 0)
+        .normalize().multiplyScalar(forceStrengthValue);
+      ball1.applyForce(forceVector);
+      forceArrow.position.copy(ball1.mesh.position);
+      forceArrowVisualization(forceVector);
+    }
+
+    function applyForceToBall2() {
+      if (!simulationRunning || physicsObjects.length < 2) return;
+      const ball2 = physicsObjects.find(body => body.index === 2);
+      if (!ball2) return;
+      const forceVector = new THREE.Vector3(forceDirectionXValueBall2, forceDirectionYBall2, 0)
+        .normalize().multiplyScalar(forceStrengthValue);
+      ball2.applyForce(forceVector);
+      forceArrow.position.copy(ball2.mesh.position);
+      forceArrowVisualization(forceVector);
+    }
+
+    function forceArrowVisualization(forceVector) {
+      forceArrow.setDirection(forceVector.clone().normalize());
+      forceArrow.setLength(forceVector.length() / 200);
+      forceArrow.visible = true;
+      setTimeout(() => { forceArrow.visible = false; }, 500);
+    }
+
+    // ----------------- UI Control Setters -----------------
+    function setFriction(value) {
+      frictionCoefficient = parseFloat(value);
+      document.getElementById('frictionValue').textContent = parseFloat(value).toFixed(2);
+    }
+    function setDrag(value) {
+      dragCoefficient = parseFloat(value);
+      document.getElementById('dragValue').textContent = parseFloat(value).toFixed(2);
+    }
+    function setForceValue(value) {
+      forceStrengthValue = parseFloat(value);
+      document.getElementById('forceValue').textContent = value;
+    }
+    function setForceDirectionXBall1(value) {
+      forceDirectionXValueBall1 = parseFloat(value);
+      document.getElementById('forceDirXValueBall1').textContent = parseFloat(value).toFixed(1);
+    }
+    function setForceDirectionYBall1(value) {
+      forceDirectionYBall1 = parseFloat(value);
+      document.getElementById('forceDirYValueBall1').textContent = parseFloat(value).toFixed(1);
+    }
+    function setForceDirectionXBall2(value) {
+      forceDirectionXValueBall2 = parseFloat(value);
+      document.getElementById('forceDirXValueBall2').textContent = parseFloat(value).toFixed(1);
+    }
+    function setForceDirectionYBall2(value) {
+      forceDirectionYBall2 = parseFloat(value);
+      document.getElementById('forceDirYValueBall2').textContent = parseFloat(value).toFixed(1);
+    }
+    function setMassValue(value) {
+      ballMassValue = parseFloat(value);
+      document.getElementById('massValue').textContent = value;
+      resetScene();
+    }
+    function setRestitution(value) {
+      restitutionCoefficient = parseFloat(value);
+      document.getElementById('restitutionValue').textContent = parseFloat(value).toFixed(2);
+    }
+    function setIntegrationMethod(value) {
+      integrationMethod = value;
+    }
+    function toggleDarkMode() {
+      darkMode = document.getElementById('darkModeCheckbox').checked;
+      document.body.classList.toggle("dark-mode", darkMode);
+    }
+    function setObjectShape(value) {
+      objectShape = value;
+      resetScene();
+    }
+    function setRotationDamping(value) {
+      rotationDamping = parseFloat(value);
+      document.getElementById('rotationDampingValue').textContent = parseFloat(value).toFixed(2);
+    }
+    function setGravityField(value) {
+      gravityStrength = parseFloat(value);
+    }
+    function toggleGravity() {
+      gravityEnabled = document.getElementById('gravityCheckbox').checked;
+    }
+    function toggle3DMode() {
+      threeDMode = document.getElementById('threeDModeCheckbox').checked;
+    }
+
+    // ----------------- Scene Reset & Scenario Change -----------------
+    function resetScene() {
+      setupScenario(currentScenario);
+      selectedObject = null;
+    }
+    function changeScenario() {
+      const scenarioValue = parseInt(document.getElementById('scenario').value);
+      currentScenario = scenarioValue;
+      setupScenario(currentScenario);
+      simulationRunning = (currentScenario !== 0);
+      toggleGuide(currentScenario === 0);
+      selectedObject = null;
+    }
+    function toggleGuide(forceVisible = null) {
+      const guide = document.getElementById('guide');
+      if (forceVisible !== null) {
+        guide.style.display = forceVisible ? 'block' : 'none';
+      } else {
+        guide.style.display = guide.style.display === 'none' ? 'block' : 'none';
+      }
+    }
+
+    // ----------------- Collision Detection & Resolution -----------------
+    function checkCollisions() {
+      for (let i = 0; i < physicsObjects.length; i++) {
+        for (let j = i + 1; j < physicsObjects.length; j++) {
+          const a = physicsObjects[i];
+          const b = physicsObjects[j];
+          const diff = new THREE.Vector3().subVectors(b.mesh.position, a.mesh.position);
+          const distance = diff.length();
+          const minDist = 3;
+          if (distance < minDist) {
+            const normal = diff.clone().normalize();
+            const overlap = minDist - distance;
+            const totalInvMass = (1 / a.mass) + (1 / b.mass);
+            const correctionA = normal.clone().multiplyScalar(-overlap * (1 / a.mass) / totalInvMass);
+            const correctionB = normal.clone().multiplyScalar(overlap * (1 / b.mass) / totalInvMass);
+            a.mesh.position.add(correctionA);
+            b.mesh.position.add(correctionB);
+            const relativeVelocity = a.velocity.clone().sub(b.velocity);
+            const velAlongNormal = relativeVelocity.dot(normal);
+            if (velAlongNormal > 0) continue;
+            const effectiveRestitution = Math.min(a.restitution, b.restitution);
+            const impulseScalar = -(1 + effectiveRestitution) * velAlongNormal / totalInvMass;
+            const impulse = normal.clone().multiplyScalar(impulseScalar);
+            a.velocity.add(impulse.clone().multiplyScalar(1 / a.mass));
+            b.velocity.sub(impulse.clone().multiplyScalar(1 / b.mass));
+            const angKickA = impulse.length() / (a.mass * 1.5) * (Math.random() < 0.5 ? -1 : 1);
+            const angKickB = impulse.length() / (b.mass * 1.5) * (Math.random() < 0.5 ? -1 : 1);
+            a.angularVelocity += angKickA;
+            b.angularVelocity += angKickB;
+            let collisionSound = document.getElementById("collisionSound");
+            if(collisionSound) { collisionSound.currentTime = 0; collisionSound.play(); }
+          }
+        }
+      }
+    }
+
+    // ----------------- Boundary Handling -----------------
+    function handleBoundary(body) {
+      if (body.mesh.position.y < 1.1) {
+        body.mesh.position.y = 1.1;
+        body.velocity.y *= -body.restitution;
+      }
+    }
+
+    // ----------------- Data Graphing -----------------
+    function updateGraph(ctx, history, maxVal) {
+      if (history.length === 0) return;  // Prevent error if history is empty
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.beginPath();
+      ctx.moveTo(0, ctx.canvas.height - (history[0] / maxVal) * ctx.canvas.height);
+      for (let i = 1; i < history.length; i++) {
+        const x = (i / maxHistory) * ctx.canvas.width;
+        const y = ctx.canvas.height - (history[i] / maxVal) * ctx.canvas.height;
+        ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    function updateAllGraphs() {
+      updateGraph(graphCtx, keHistory, maxKineticEnergyDisplay);
+      updateGraph(momentumCtx, momentumHistory, 5000);
+      updateGraph(accelerationCtx, accelerationHistory, 100);
+    }
+
+    // ----------------- Animation Loop -----------------
+    let touchStartTime = 0;
+    let touchStartPos = new THREE.Vector2();
+    const graphCtx = document.getElementById('dataGraph').getContext('2d');
+    const momentumCtx = document.getElementById('momentumGraph').getContext('2d');
+    const accelerationCtx = document.getElementById('accelerationGraph').getContext('2d');
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const deltaTime = Math.min(0.016, clock.getDelta());
+      let maxKE = 0;
+      let maxMomentum = 0;
+      let maxAcceleration = 0;
+      
+      physicsObjects.forEach(body => body.restitution = restitutionCoefficient);
+      
+      physicsObjects.forEach(body => {
+        body.update(deltaTime);
+        handleBoundary(body);
+        maxKE = Math.max(maxKE, body.getKineticEnergy());
+        const mom = body.velocity.length() * body.mass;
+        maxMomentum = Math.max(maxMomentum, mom);
+        maxAcceleration = Math.max(maxAcceleration, body.lastAcceleration.length());
+      });
+      
+      if (physicsObjects.length > 1) {
+        checkCollisions();
+      }
+      physicsObjects.forEach(body => {
+        const normalizedKE = Math.min(1, maxKE / maxKineticEnergyDisplay);
+        body.updateColorBasedOnKE(normalizedKE);
+      });
+      
+      if (selectedObject) {
+        const acc = selectedObject.lastAcceleration.clone();
+        if (acc.length() > 0.001) {
+          accelerationArrow.setDirection(acc.normalize());
+          accelerationArrow.setLength(acc.length() * 5);
+          accelerationArrow.position.copy(selectedObject.mesh.position);
+          accelerationArrow.visible = true;
+        } else {
+          accelerationArrow.visible = false;
+        }
+        const momentum = selectedObject.velocity.clone().multiplyScalar(selectedObject.mass);
+        if (momentum.length() > 0.001) {
+          momentumArrow.setDirection(momentum.normalize());
+          momentumArrow.setLength(momentum.length() / 50);
+          momentumArrow.position.copy(selectedObject.mesh.position);
+          momentumArrow.visible = true;
+        } else {
+          momentumArrow.visible = false;
+        }
+      } else {
+        accelerationArrow.visible = false;
+        momentumArrow.visible = false;
+      }
+      
+      document.getElementById('keValue').textContent = maxKE.toFixed(0);
+      
+      keHistory.push(maxKE);
+      if (keHistory.length > maxHistory) keHistory.shift();
+      momentumHistory.push(maxMomentum);
+      if (momentumHistory.length > maxHistory) momentumHistory.shift();
+      accelerationHistory.push(maxAcceleration);
+      if (accelerationHistory.length > maxHistory) accelerationHistory.shift();
+      
+      updateAllGraphs();
+      renderer.render(scene, camera);
+    }
+
+    // ----------------- Export Data -----------------
+    function exportData() {
+      const data = {
+        kineticEnergyHistory: keHistory,
+        momentumHistory: momentumHistory,
+        accelerationHistory: accelerationHistory
+      };
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", "simulation_data.json");
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+    }
+
+    // ----------------- Initialize & Resize -----------------
+    init();
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
