@@ -4,115 +4,173 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Newton's Laws of Motion - Cyberpunk 3D Interactive Guide</title>
-  <!-- Cyberpunk-style futuristic font from Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Futuristic & Modern Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
+    /* CSS Variables for easy theming */
+    :root {
+      --bg-color: #0d0d0d;
+      --primary-color: #00ffe1;
+      --secondary-color: #00a6a1;
+      --accent-color: #ff00f7;
+      --card-bg: #1f1f1f;
+      --text-color: #e6e6e6;
+      --light-text: #bbb;
+      --shadow-color: rgba(0, 255, 225, 0.2);
+      --transition-speed: 0.3s;
+    }
+
     /* Global Styles */
     body {
-      background: #0d0d0d;
-      color: #e6e6e6;
       margin: 0;
       padding: 0;
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #0d0d0d, #1a1a1a);
+      color: var(--text-color);
     }
+
+    /* Main container */
     .container {
-      max-width: 960px;
+      max-width: 1100px;
       margin: 40px auto;
       padding: 20px;
-      background: #1e1e1e;
-      border: 1px solid #333;
-      border-radius: 10px;
-      box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
     }
+
     h1, h2, h3 {
+      font-family: 'Orbitron', sans-serif;
       text-align: center;
-      color: #00ffe1;
-      text-shadow: 0 0 10px #00ffe1;
+      color: var(--primary-color);
+      text-shadow: 0 0 8px var(--primary-color);
     }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
     p, li {
       line-height: 1.6;
+      font-size: 1rem;
     }
+
+    /* Section card styling */
     .law-section {
+      background: var(--card-bg);
+      border: 1px solid #333;
+      border-radius: 10px;
       margin-bottom: 60px;
-      padding: 20px;
-      border-bottom: 1px solid #333;
+      padding: 25px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
     }
-    .law-section:last-child {
-      border-bottom: none;
+
+    .law-section blockquote {
+      font-style: italic;
+      margin: 15px 0;
+      padding-left: 15px;
+      border-left: 4px solid var(--primary-color);
     }
+
+    .law-section ul {
+      list-style-type: disc;
+      margin-left: 25px;
+    }
+
     /* Simulation Container */
     .simulation-container {
       width: 100%;
       height: 300px;
-      border: 2px solid #00ffe1;
+      background: #121212;
+      border: 2px solid var(--primary-color);
       border-radius: 10px;
       position: relative;
       overflow: hidden;
       margin: 20px 0;
-      box-shadow: 0 0 15px rgba(0, 255, 225, 0.4);
+      box-shadow: 0 0 20px var(--shadow-color);
     }
-    /* Controls and Inputs */
+
+    /* Simulation Controls */
     .simulation-controls {
-      text-align: center;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      margin-top: 15px;
     }
+
+    .simulation-controls .control-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .simulation-controls label {
+      font-size: 1.1em;
+      margin-bottom: 5px;
+      color: var(--primary-color);
+    }
+
+    .simulation-controls .value-display {
+      font-size: 1.1em;
+      color: var(--accent-color);
+      font-weight: bold;
+      margin-top: 5px;
+    }
+
     button, input[type="range"] {
       padding: 10px 20px;
-      margin: 10px 5px;
-      background: linear-gradient(145deg, #00ffe1, #00a6a1);
+      background: linear-gradient(145deg, var(--primary-color), var(--secondary-color));
       border: none;
       border-radius: 5px;
-      color: #0d0d0d;
-      font-size: 1em;
+      color: var(--bg-color);
+      font-size: 1rem;
       cursor: pointer;
-      transition: transform 0.2s, background 0.2s;
+      transition: transform var(--transition-speed), background var(--transition-speed);
     }
+
     button:hover, input[type="range"]:hover {
       transform: scale(1.05);
-      background: linear-gradient(145deg, #00a6a1, #00ffe1);
+      background: linear-gradient(145deg, var(--secondary-color), var(--primary-color));
     }
+
     input[type="color"] {
       width: 40px;
       height: 40px;
       border: none;
       border-radius: 50%;
-      margin: 10px 5px;
       cursor: pointer;
+      transition: transform var(--transition-speed);
     }
-    .control-group {
-      margin: 15px 0;
-      text-align: center;
+
+    input[type="color"]:hover {
+      transform: scale(1.1);
     }
-    label {
-      font-size: 1.1em;
-      color: #00ffe1;
-    }
-    .value-display {
-      font-size: 1.1em;
-      color: #ff00f7;
-      font-weight: bold;
-      margin-left: 10px;
-    }
-    canvas {
-      width: 100% !important;
-      height: 100% !important;
-      display: block;
-    }
+
+    /* Key Terms styling */
     .key-terms {
       margin-top: 20px;
+      padding: 10px;
+      border-top: 1px solid #333;
     }
+
     .key-terms h3 {
-      color: #ff00f7;
+      color: var(--accent-color);
+      margin-bottom: 10px;
     }
+
     .key-terms ul {
       list-style-type: disc;
-      padding-left: 20px;
+      padding-left: 25px;
     }
+
+    /* Credits */
     .credits {
       text-align: center;
       margin-top: 40px;
-      color: #888;
+      color: var(--light-text);
       font-size: 0.9em;
     }
+
+    /* Responsive adjustments */
     @media (max-width: 768px) {
       .container {
         margin: 20px;
@@ -170,11 +228,11 @@
         <button onclick="applyForce1()">Apply Force</button>
         <button onclick="resetSimulation1()">Reset</button>
         <div class="control-group">
-          <label for="cubeColor">Cube Color:</label>
+          <label for="cubeColor">Cube Color</label>
           <input type="color" id="cubeColor" value="#00ffe1" onchange="changeCubeColor(this.value)">
         </div>
         <div class="control-group">
-          <label for="frictionRange">Friction (Deceleration):</label>
+          <label for="frictionRange">Friction (Deceleration)</label>
           <input type="range" id="frictionRange" min="0" max="0.02" step="0.001" value="0.005" onchange="updateFriction(this.value)">
           <span class="value-display" id="frictionDisplay">0.005</span>
         </div>
@@ -185,7 +243,7 @@
     <section class="law-section" id="law2">
       <h2>Newton's Second Law of Motion: The Law of Acceleration (F = ma)</h2>
       <p>Newton's Second Law quantifies the effect of force on motion by relating net force, mass, and acceleration.</p>
-      <div class="code-snippet" style="background: #111; padding: 10px; border-radius: 5px; overflow-x: auto; font-family: 'Courier New', Courier, monospace; color: #00ffe1;">
+      <div class="code-snippet" style="background: #111; padding: 10px; border-radius: 5px; overflow-x: auto; font-family: 'Courier New', Courier, monospace; color: var(--primary-color); text-align:center; margin-bottom:15px;">
         <code>F = m * a</code>
       </div>
       <ul>
@@ -210,18 +268,18 @@
       <div class="simulation-container" id="simulation2"></div>
       <div class="simulation-controls" id="controls2">
         <div class="control-group">
-          <label for="forceRange">Applied Force Level:</label>
+          <label for="forceRange">Applied Force Level</label>
           <input type="range" id="forceRange" min="0" max="3" step="0.1" value="1" onchange="updateForceDisplay(this.value)">
           <span class="value-display" id="forceDisplay">1</span>
         </div>
         <div class="control-group">
-          <label for="massRange">Mass (kg):</label>
+          <label for="massRange">Mass (kg)</label>
           <input type="range" id="massRange" min="1" max="5" step="0.5" value="1" onchange="updateMassDisplay(this.value)">
           <span class="value-display" id="massDisplay">1</span>
         </div>
         <button onclick="applyForce2()">Apply Force</button>
         <button onclick="resetSimulation2()">Reset</button>
-        <p style="text-align:center;">Current Acceleration: <span id="accelerationDisplay">0.005</span> m/s²</p>
+        <p style="text-align:center; margin-top:10px;">Current Acceleration: <span id="accelerationDisplay">0.005</span> m/s²</p>
       </div>
     </section>
 
@@ -251,12 +309,12 @@
       <div class="simulation-container" id="simulation3"></div>
       <div class="simulation-controls" id="controls3">
         <div class="control-group">
-          <label for="velocity1Range">Sphere 1 Velocity:</label>
+          <label for="velocity1Range">Sphere 1 Velocity</label>
           <input type="range" id="velocity1Range" min="0.005" max="0.03" step="0.001" value="0.015" onchange="updateVelocityDisplays()">
           <span class="value-display" id="velocity1Display">0.015</span>
         </div>
         <div class="control-group">
-          <label for="velocity2Range">Sphere 2 Velocity:</label>
+          <label for="velocity2Range">Sphere 2 Velocity</label>
           <input type="range" id="velocity2Range" min="0.005" max="0.03" step="0.001" value="0.015" onchange="updateVelocityDisplays()">
           <span class="value-display" id="velocity2Display">0.015</span>
         </div>
