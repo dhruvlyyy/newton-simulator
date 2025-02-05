@@ -1,817 +1,469 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <!-- Ensure proper scaling on mobile devices -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Advanced Newton Simulator</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Newton's Laws of Motion - 3D Interactive Guide</title>
   <style>
-    body { 
-      margin: 0; 
-      overflow: hidden; 
-      touch-action: none; 
-      background-color: #f0f0f0; 
-      font-family: Arial, sans-serif;
-      transition: background-color 0.3s, color 0.3s;
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+      color: #333;
     }
-    body.dark-mode {
-      background-color: #222;
-      color: #ddd;
+    .container {
+      max-width: 960px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #fff;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
-    canvas { 
-      display: block; 
+    h1,
+    h2,
+    h3 {
+      color: #0056b3;
     }
-    #ui {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      background: rgba(0,0,0,0.85);
-      padding: 15px;
-      border-radius: 10px;
-      color: white;
-      z-index: 110;
-      max-width: 350px;
-      width: 90%;
+    p {
+      line-height: 1.6;
     }
-    .control-group { 
-      margin: 10px 0; 
+    .law-section {
+      margin-bottom: 40px;
+    }
+    .simulation-container {
+      width: 100%;
+      height: 300px;
+      border: 1px solid #ccc;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 15px;
+    }
+    .simulation-controls {
+      margin-top: 10px;
+      text-align: center;
     }
     button {
-      background: #2196F3;
+      padding: 10px 20px;
+      margin: 5px;
       border: none;
+      background-color: #0056b3;
       color: white;
-      padding: 8px 15px;
-      border-radius: 4px;
-      margin: 5px 0;
       cursor: pointer;
-      width: 100%;
+      border-radius: 5px;
+      font-size: 1em;
     }
-    input[type="range"],
-    select {
-      width: 100%;
+    button:hover {
+      background-color: #003366;
     }
-    input[type="checkbox"] {
-      margin-right: 5px;
-    }
-    #guide {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.95);
-      padding: 20px;
-      border-radius: 15px;
-      color: white;
-      max-width: 90%;
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
       display: block;
-      z-index: 120;
     }
-    #kineticEnergyDisplay {
-      position: fixed;
-      bottom: 10px;
-      left: 10px;
-      background: rgba(0,0,0,0.7);
-      color: white;
+    .key-terms {
+      margin-top: 20px;
+    }
+    .key-terms h3 {
+      color: #007bff;
+    }
+    .key-terms ul {
+      list-style-type: disc;
+      padding-left: 20px;
+    }
+    .key-terms li {
+      margin-bottom: 8px;
+      font-size: 1em;
+    }
+    .important {
+      font-weight: bold;
+      color: #d43f3f;
+    }
+    .code-snippet {
+      background-color: #eee;
       padding: 10px;
       border-radius: 5px;
-      z-index: 105;
+      overflow-x: auto;
+      font-family: monospace;
     }
-    /* Graph canvases */
-    #dataGraph, #momentumGraph, #accelerationGraph {
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      background: rgba(255,255,255,0.8);
-      border: 1px solid #ccc;
-      z-index: 105;
-      margin-bottom: 5px;
+    .credits {
+      text-align: center;
+      margin-top: 40px;
+      color: #777;
+      font-size: 0.9em;
     }
-    #dataGraph { height: 150px; width: 300px; }
-    #momentumGraph { height: 150px; width: 300px; bottom: 170px; }
-    #accelerationGraph { height: 150px; width: 300px; bottom: 330px; }
-    /* Media Query for smaller screens */
-    @media (max-width: 600px) {
-      #ui {
-        top: 5px;
-        left: 5px;
-        padding: 10px;
-        max-width: 95%;
+    @media (max-width: 768px) {
+      .container {
+        margin: 10px auto;
+        padding: 15px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+      h2 {
+        font-size: 1.5em;
+      }
+      h3 {
+        font-size: 1.2em;
+      }
+      p,
+      li {
+        font-size: 1em;
       }
       button {
-        padding: 6px 10px;
+        padding: 8px 16px;
         font-size: 0.9em;
+      }
+      .simulation-container {
+        height: 250px;
+        margin-bottom: 10px;
       }
     }
   </style>
 </head>
 <body>
-  <!-- Audio element for collision sound (provide collision.mp3 file) -->
-  <audio id="collisionSound" src="collision.mp3" preload="auto"></audio>
+  <div class="container">
+    <h1>Newton's Laws of Motion - Interactive 3D Guide</h1>
 
-  <!-- User Interface -->
-  <div id="ui">
-    <button onclick="toggleGuide()" title="Show or hide the guide">Help &amp; Laws</button>
-    <div class="control-group">
-      <label for="scenario" title="Select a scenario to explore">Select a Law:</label>
-      <select id="scenario" onchange="changeScenario()" title="Choose a scenario">
-        <!-- Default scenario is set to 1 -->
-        <option value="1" selected>1st Law: Inertia</option>
-        <option value="2">2nd Law: F = ma</option>
-        <option value="3">3rd Law: Action-Reaction</option>
-      </select>
-    </div>
-    <div class="control-group">
-      <label for="gravitySelect" title="Choose the gravitational field">Gravitational Field:</label>
-      <select id="gravitySelect" onchange="setGravityField(this.value)" title="Select gravitational acceleration">
-        <option value="9.8">Earth (9.8 m/s²)</option>
-        <option value="1.62">Moon (1.62 m/s²)</option>
-        <option value="3.71">Mars (3.71 m/s²)</option>
-      </select>
-    </div>
-    <div class="control-group">
-      <label title="Toggle gravity on or off">
-        <input type="checkbox" id="gravityCheckbox" onchange="toggleGravity()" checked> Enable Gravity
-      </label>
-    </div>
-    <div class="control-group">
-      <label for="frictionSlider" title="Adjust the friction (surface resistance)">Friction:</label>
-      <input type="range" id="frictionSlider" min="0" max="1" step="0.01" value="0.10" oninput="setFriction(this.value)">
-      <span id="frictionValue">0.10</span>
-    </div>
-    <div class="control-group">
-      <label for="dragSlider" title="Adjust air resistance (drag)">Air Resistance (Drag):</label>
-      <input type="range" id="dragSlider" min="0" max="1" step="0.01" value="0.05" oninput="setDrag(this.value)">
-      <span id="dragValue">0.05</span>
-    </div>
-    <div class="control-group">
-      <label for="forceSlider" title="Control the magnitude of applied forces">Force Strength:</label>
-      <input type="range" id="forceSlider" min="100" max="2000" step="100" value="1000" oninput="setForceValue(this.value)">
-      <span id="forceValue">1000</span>
-    </div>
-    <div class="control-group">
-      <label for="forceDirXSliderBall1" title="Force direction X component for Ball 1">Force Dir X (Ball 1):</label>
-      <input type="range" id="forceDirXSliderBall1" min="-1" max="1" step="0.1" value="0" oninput="setForceDirectionXBall1(this.value)">
-      <span id="forceDirXValueBall1">0.0</span>
-    </div>
-    <div class="control-group">
-      <label for="forceDirYSliderBall1" title="Force direction Y component for Ball 1">Force Dir Y (Ball 1):</label>
-      <input type="range" id="forceDirYSliderBall1" min="-1" max="1" step="0.1" value="0" oninput="setForceDirectionYBall1(this.value)">
-      <span id="forceDirYValueBall1">0.0</span>
-    </div>
-    <div class="control-group">
-      <label for="forceDirXSliderBall2" title="Force direction X component for Ball 2">Force Dir X (Ball 2):</label>
-      <input type="range" id="forceDirXSliderBall2" min="-1" max="1" step="0.1" value="0" oninput="setForceDirectionXBall2(this.value)">
-      <span id="forceDirXValueBall2">0.0</span>
-    </div>
-    <div class="control-group">
-      <label for="forceDirYSliderBall2" title="Force direction Y component for Ball 2">Force Dir Y (Ball 2):</label>
-      <input type="range" id="forceDirYSliderBall2" min="-1" max="1" step="0.1" value="0" oninput="setForceDirectionYBall2(this.value)">
-      <span id="forceDirYValueBall2">0.0</span>
-    </div>
-    <div class="control-group">
-      <label for="massSlider" title="Set the mass of the objects">Ball Mass:</label>
-      <input type="range" id="massSlider" min="1" max="50" step="1" value="10" oninput="setMassValue(this.value)">
-      <span id="massValue">10</span>
-    </div>
-    <div class="control-group">
-      <label for="restitutionSlider" title="Adjust restitution (elasticity) of collisions">Restitution (Elasticity):</label>
-      <input type="range" id="restitutionSlider" min="0" max="1" step="0.01" value="0.80" oninput="setRestitution(this.value)">
-      <span id="restitutionValue">0.80</span>
-    </div>
-    <div class="control-group">
-      <label for="integrationMethod" title="Choose the numerical integration method">Integration Method:</label>
-      <select id="integrationMethod" onchange="setIntegrationMethod(this.value)" title="Select integration method">
-        <option value="Euler">Euler</option>
-        <option value="Verlet">Verlet</option>
-      </select>
-    </div>
-    <div class="control-group">
-      <label title="Toggle dark mode for better contrast">
-        <input type="checkbox" id="darkModeCheckbox" onchange="toggleDarkMode()"> Dark Mode
-      </label>
-    </div>
-    <div class="control-group">
-      <label for="objectShape" title="Select the shape of the objects">Object Shape:</label>
-      <select id="objectShape" onchange="setObjectShape(this.value)" title="Choose object shape">
-        <option value="Sphere">Sphere</option>
-        <option value="Cube">Cube</option>
-      </select>
-    </div>
-    <div class="control-group">
-      <label for="rotationDampingSlider" title="Adjust rotational damping (friction)">Rotation Damping:</label>
-      <input type="range" id="rotationDampingSlider" min="0.90" max="1" step="0.01" value="0.98" oninput="setRotationDamping(this.value)">
-      <span id="rotationDampingValue">0.98</span>
-    </div>
-    <div class="control-group">
-      <label title="Toggle full 3D mode (allow z–axis motion)">
-        <input type="checkbox" id="threeDModeCheckbox" onchange="toggle3DMode()"> 3D Mode
-      </label>
-    </div>
-    <div class="control-group">
-      <button onclick="exportData()" title="Download simulation data as JSON">Export Data</button>
-    </div>
-    <div class="control-group">
-      <button onclick="applyForceToSelected()" title="Apply force (as defined above) to the selected object">Apply Force to Selected</button>
-      <button onclick="applyForceToBall1()" title="Apply force to Ball 1">Apply Force to Ball 1</button>
-      <button onclick="applyForceToBall2()" title="Apply force to Ball 2">Apply Force to Ball 2</button>
-      <button onclick="resetScene()" title="Reset the simulation">Reset Scene</button>
+    <section class="law-section" id="law1">
+      <h2>Newton's First Law of Motion: The Law of Inertia</h2>
+      <p>
+        Newton's First Law, the Law of Inertia, describes an object's resistance to changes in its state of motion.
+      </p>
+      <blockquote>
+        <p>An object at rest stays at rest, and an object in motion stays in motion with the same velocity unless acted upon by a net force.</p>
+      </blockquote>
+      <p>Essentially:</p>
+      <ul>
+        <li><strong>Rest:</strong> Stationary objects remain still without external force.</li>
+        <li><strong>Motion:</strong> Moving objects continue moving uniformly unless a force changes their motion.</li>
+        <li><strong>Inertia:</strong> This resistance to change is inertia, proportional to mass.</li>
+      </ul>
+
+      <div class="key-terms">
+        <h3>Key Terms for First Law</h3>
+        <ul>
+          <li><strong>Inertia:</strong> Resistance to changes in motion.</li>
+          <li><strong>Force:</strong> Push or pull, measured in Newtons (N).</li>
+          <li><strong>Net Force:</strong> Total force, vector sum of all forces.</li>
+          <li><strong>Equilibrium:</strong> Zero net force, constant velocity or rest.</li>
+        </ul>
+      </div>
+
+      <div class="simulation-container" id="simulation1"></div>
+      <div class="simulation-controls" id="controls1">
+        <button onclick="applyForce1()">Apply Force</button>
+        <button onclick="resetSimulation1()">Reset</button>
+      </div>
+    </section>
+
+    <section class="law-section" id="law2">
+      <h2>Newton's Second Law of Motion: The Law of Acceleration (F=ma)</h2>
+      <p>
+        Newton's Second Law quantifies how force affects motion, relating force, mass, and acceleration.
+      </p>
+      <div class="code-snippet">
+        <code>F = m * a</code>
+      </div>
+      <p>Where:</p>
+      <ul>
+        <li><strong>F</strong> = Net Force (N)</li>
+        <li><strong>m</strong> = Mass (kg)</li>
+        <li><strong>a</strong> = Acceleration (m/s²)</li>
+      </ul>
+      <p>In essence:</p>
+      <ul>
+        <li><strong>Acceleration is proportional to Force:</strong> More force, more acceleration.</li>
+        <li><strong>Acceleration is inversely proportional to Mass:</strong> More mass, less acceleration for same force.</li>
+        <li><strong>Direction:</strong> Acceleration is always in the net force's direction.</li>
+      </ul>
+
+      <div class="key-terms">
+        <h3>Key Terms for Second Law</h3>
+        <ul>
+          <li><strong>Acceleration:</strong> Rate of velocity change (m/s²).</li>
+          <li><strong>Mass:</strong> Amount of matter, resistance to acceleration (kg).</li>
+          <li><strong>Weight:</strong> Gravitational force on mass (N), Weight = m*g.</li>
+        </ul>
+      </div>
+
+      <div class="simulation-container" id="simulation2"></div>
+      <div class="simulation-controls" id="controls2">
+        <button onclick="applyForce2(1)">Small Force</button>
+        <button onclick="applyForce2(2)">Medium Force</button>
+        <button onclick="applyForce2(3)">Large Force</button>
+        <button onclick="changeMass2()">Change Mass</button>
+        <button onclick="resetSimulation2()">Reset</button>
+      </div>
+    </section>
+
+    <section class="law-section" id="law3">
+      <h2>Newton's Third Law: Action-Reaction & Elastic Collision</h2>
+      <p>
+        Newton's Third Law explains that forces are always paired and equal but act in opposite directions. This simulation demonstrates a nearly elastic collision, where two spheres collide and bounce off, exchanging momentum and kinetic energy.
+      </p>
+      <blockquote>
+        <p>For every action, there is an equal and opposite reaction.</p>
+      </blockquote>
+      <p>More precisely:</p>
+      <blockquote>
+        <p>When object A exerts a force on object B, object B exerts an equal and opposite force on object A.</p>
+      </blockquote>
+      <p>Key points of action-reaction in collisions:</p>
+      <ul>
+        <li><strong>Interaction:</strong> Collision is an interaction where objects exert forces on each other.</li>
+        <li><strong>Equal Forces:</strong> The force one sphere exerts on the other is equal in magnitude to the force it receives.</li>
+        <li><strong>Opposite Directions:</strong> These forces act in opposite directions, causing the spheres to bounce off.</li>
+        <li><strong>Momentum Exchange:</strong> In an elastic collision, momentum and kinetic energy are transferred between the objects.</li>
+      </ul>
+      <p>
+        Click "Initiate Collision" to see the spheres collide and bounce off, illustrating action-reaction in an elastic collision.
+      </p>
+
+      <div class="key-terms">
+        <h3>Key Terms for Third Law</h3>
+        <ul>
+          <li><strong>Action Force:</strong> Force exerted by one object on another during interaction.</li>
+          <li><strong>Reaction Force:</strong> Equal and opposite force exerted back.</li>
+          <li><strong>Elastic Collision:</strong> Collision where objects bounce, conserving momentum and kinetic energy.</li>
+          <li><strong>Momentum:</strong> Measure of mass in motion.</li>
+          <li><strong>Kinetic Energy:</strong> Energy of motion.</li>
+        </ul>
+      </div>
+
+      <div class="simulation-container" id="simulation3"></div>
+      <div class="simulation-controls" id="controls3">
+        <button onclick="applyForce3()">Initiate Collision</button>
+        <button onclick="resetSimulation3()">Reset</button>
+      </div>
+    </section>
+
+    <div class="credits">
+      <p>Interactive simulations created with HTML, CSS, JavaScript, and Three.js.</p>
     </div>
   </div>
 
-  <!-- Interactive Guide -->
-  <div id="guide">
-    <h2>Advanced Newton Simulator</h2>
-    <p><b>Overview:</b> This simulator demonstrates Newton’s Laws with realistic collisions, air resistance, rotation, and live data plotting. Use the controls to adjust various simulation parameters.</p>
-    <p><b>Features:</b></p>
-    <ul>
-      <li>Switch between Euler and Verlet integration.</li>
-      <li>Toggle dark mode and 3D mode.</li>
-      <li>Choose object shapes (Sphere or Cube).</li>
-      <li>Adjust friction, drag, restitution, and rotation damping.</li>
-      <li>View live graphs for kinetic energy, momentum, and acceleration.</li>
-      <li>Listen for collision sounds and export simulation data.</li>
-    </ul>
-    <p>📱 Mobile: Touch &amp; drag objects<br>🖥 Desktop: Click &amp; drag objects, scroll to zoom</p>
-    <button onclick="toggleGuide()">Close Guide</button>
-  </div>
-
-  <!-- Kinetic Energy Display -->
-  <div id="kineticEnergyDisplay">Kinetic Energy: <span id="keValue">0</span></div>
-
-  <!-- Data Graph Canvases -->
-  <canvas id="dataGraph" width="300" height="150"></canvas>
-  <canvas id="momentumGraph" width="300" height="150"></canvas>
-  <canvas id="accelerationGraph" width="300" height="150"></canvas>
-
-  <!-- Three.js Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
-    // Global Scene & Simulation Variables
-    let scene, camera, renderer, physicsObjects = [];
-    let selectedObject = null;
-    let simulationRunning = false;
-    let clock = new THREE.Clock();
+    // --- Simulation 1: First Law (Inertia) ---
+    let scene1, camera1, renderer1, cube1, velocity1 = 0;
+    const acceleration1 = 0.005;
 
-    // Global Physics Parameters (modifiable via UI)
-    let gravityEnabled = true;
-    let gravityStrength = 9.8;
-    let frictionCoefficient = 0.1;
-    let dragCoefficient = 0.05;
-    let forceStrengthValue = 1000;
-    let ballMassValue = 10;
-    let restitutionCoefficient = 0.8;
-    let forceDirectionXValueBall1 = 0, forceDirectionYBall1 = 0;
-    let forceDirectionXValueBall2 = 0, forceDirectionYBall2 = 0;
-    const maxKineticEnergyDisplay = 1000;
+    function initScene1() {
+      scene1 = new THREE.Scene();
+      camera1 = new THREE.PerspectiveCamera(75, simulation1.offsetWidth / simulation1.offsetHeight, 0.1, 1000);
+      renderer1 = new THREE.WebGLRenderer({ antialias: true });
+      renderer1.setSize(simulation1.offsetWidth, simulation1.offsetHeight);
+      simulation1.appendChild(renderer1.domElement);
+      renderer1.setClearColor(0xf0f0f0);
 
-    // Additional Global Options
-    let integrationMethod = "Euler"; // or "Verlet"
-    let objectShape = "Sphere"; // or "Cube"
-    let rotationDamping = 0.98;
-    let threeDMode = false;
-    let darkMode = false;
+      const geometry = new THREE.BoxGeometry();
+      const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+      cube1 = new THREE.Mesh(geometry, material);
+      scene1.add(cube1);
 
-    // Histories for data graphing
-    let keHistory = [];
-    let momentumHistory = [];
-    let accelerationHistory = [];
-    const maxHistory = 100; // last 100 frames
+      const ambientLight = new THREE.AmbientLight(0x404040);
+      scene1.add(ambientLight);
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+      directionalLight.position.set(1, 1, 1).normalize();
+      scene1.add(directionalLight);
 
-    // Arrow Helpers for selected object
-    let forceArrow, accelerationArrow, momentumArrow;
+      camera1.position.z = 5;
+      animate1();
+    }
 
-    // ----------------- PhysicsBody Class -----------------
-    class PhysicsBody {
-      constructor(mesh, mass = 10, index) {
-        this.mesh = mesh;
-        this.mass = mass;
-        this.velocity = new THREE.Vector3();
-        this.forces = new THREE.Vector3();
-        this.restitution = restitutionCoefficient;
-        this.index = index;
-        // For rotational dynamics
-        this.angularVelocity = 0;
-        this.orientation = 0;
-        this.lastAcceleration = new THREE.Vector3();
-        // For Verlet integration, store previous position
-        this.previousPosition = this.mesh.position.clone();
+    function animate1() {
+      requestAnimationFrame(animate1);
+      cube1.position.x += velocity1;
+      renderer1.render(scene1, camera1);
+    }
+
+    function applyForce1() {
+      velocity1 += acceleration1;
+    }
+
+    function resetSimulation1() {
+      velocity1 = 0;
+      cube1.position.set(0, 0, 0);
+    }
+
+    // --- Simulation 2: Second Law (F=ma) ---
+    let scene2, camera2, renderer2, cube2, forceLevel2 = 0, mass2 = 1;
+    const baseAcceleration2 = 0.005;
+
+    function initScene2() {
+      scene2 = new THREE.Scene();
+      camera2 = new THREE.PerspectiveCamera(75, simulation2.offsetWidth / simulation2.offsetHeight, 0.1, 1000);
+      renderer2 = new THREE.WebGLRenderer({ antialias: true });
+      renderer2.setSize(simulation2.offsetWidth, simulation2.offsetHeight);
+      simulation2.appendChild(renderer2.domElement);
+      renderer2.setClearColor(0xf0f0f0);
+
+      const geometry = new THREE.BoxGeometry();
+      const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+      cube2 = new THREE.Mesh(geometry, material);
+      scene2.add(cube2);
+
+      const ambientLight = new THREE.AmbientLight(0x404040);
+      scene2.add(ambientLight);
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+      directionalLight.position.set(1, 1, 1).normalize();
+      scene2.add(directionalLight);
+
+      camera2.position.z = 5;
+      animate2();
+    }
+
+    function animate2() {
+      requestAnimationFrame(animate2);
+      if (forceLevel2 > 0) {
+        cube2.position.x += baseAcceleration2 * forceLevel2 / mass2;
       }
-      applyForce(force) {
-        this.forces.add(force);
-      }
-      update(deltaTime) {
-        // --- Linear Dynamics ---
-        if (gravityEnabled) {
-          this.applyForce(new THREE.Vector3(0, -gravityStrength * this.mass, 0));
-        }
-        const frictionForce = this.velocity.clone().setZ(0).setY(0).multiplyScalar(-frictionCoefficient * this.mass);
-        this.applyForce(frictionForce);
-        const dragForce = this.velocity.clone().multiplyScalar(-dragCoefficient * this.velocity.length());
-        this.applyForce(dragForce);
-        const acceleration = this.forces.clone().divideScalar(this.mass);
-        this.lastAcceleration.copy(acceleration);
-
-        if (integrationMethod === "Verlet") {
-          let currentPos = this.mesh.position.clone();
-          let newPos = currentPos.clone().add(currentPos.clone().sub(this.previousPosition)).add(acceleration.clone().multiplyScalar(deltaTime * deltaTime));
-          this.velocity.copy(newPos.clone().sub(this.previousPosition).divideScalar(2 * deltaTime));
-          this.previousPosition.copy(currentPos);
-          this.mesh.position.copy(newPos);
-          if (!threeDMode) this.mesh.position.z = 0;
-        } else {
-          this.velocity.add(acceleration.multiplyScalar(deltaTime));
-          this.mesh.position.add(this.velocity.clone().multiplyScalar(deltaTime));
-          if (!threeDMode) this.mesh.position.z = 0;
-        }
-        this.forces.set(0, 0, 0);
-
-        // --- Rotational Dynamics ---
-        this.orientation += this.angularVelocity * deltaTime;
-        this.angularVelocity *= rotationDamping;
-        if(this.mesh.userData.marker) {
-          this.mesh.userData.marker.rotation.z = this.orientation;
-        }
-      }
-      getKineticEnergy() {
-        return 0.5 * this.mass * this.velocity.lengthSq();
-      }
-      updateColorBasedOnKE(normalizedKE) {
-        const color = new THREE.Color();
-        color.setHSL(0.66 - normalizedKE * 0.66, 1, 0.5);
-        this.mesh.material.color.set(color);
-      }
+      renderer2.render(scene2, camera2);
     }
 
-    // ----------------- Initialization -----------------
-    function init() {
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.shadowMap.enabled = true;
-      document.body.appendChild(renderer.domElement);
-
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-      scene.add(ambientLight);
-      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-      dirLight.position.set(5, 10, 10);
-      dirLight.castShadow = true;
-      scene.add(dirLight);
-
-      const gridHelper = new THREE.GridHelper(100, 100, 0x888888, 0x444444);
-      scene.add(gridHelper);
-
-      const ground = new THREE.Mesh(
-        new THREE.PlaneGeometry(100, 100),
-        new THREE.MeshStandardMaterial({ color: 0x202020, visible: false })
-      );
-      ground.rotation.x = -Math.PI / 2;
-      ground.receiveShadow = true;
-      scene.add(ground);
-
-      const groundLine = new THREE.Mesh(
-        new THREE.PlaneGeometry(100, 0.1),
-        new THREE.MeshStandardMaterial({ color: 0x555555 })
-      );
-      groundLine.position.y = 0;
-      groundLine.rotation.x = -Math.PI / 2;
-      scene.add(groundLine);
-
-      forceArrow = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(0,0,0), 5, 0xffff00);
-      scene.add(forceArrow);
-      forceArrow.visible = false;
-
-      accelerationArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 5, 0x00ff00);
-      scene.add(accelerationArrow);
-      accelerationArrow.visible = false;
-      momentumArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 5, 0xff00ff);
-      scene.add(momentumArrow);
-      momentumArrow.visible = false;
-
-      // Set default scenario to 1 so balls load on startup
-      currentScenario = 1;
-      simulationRunning = true;
-      setupScenario(currentScenario);
-      toggleGuide(true);
-
-      camera.position.set(0, 10, 50);
-      camera.lookAt(0, 5, 0);
-      setupInputHandlers();
+    function applyForce2(level) {
+      forceLevel2 = level;
     }
 
-    // ----------------- Scenario Setup -----------------
-    let currentScenario = 1;
-    function setupScenario(scenario) {
-      currentScenario = scenario;
-      physicsObjects.forEach(b => scene.remove(b.mesh));
-      physicsObjects = [];
-      if (scenario === 0) return;
-      switch(scenario) {
-        case 1:
-          createObject(new THREE.Vector3(-5, 5, 0), ballMassValue, 0xff0000, 1);
-          createObject(new THREE.Vector3(5, 5, 0), ballMassValue, 0x00ff00, 2);
-          break;
-        case 2:
-          createObject(new THREE.Vector3(-5, 5, 0), ballMassValue / 2, 0x0000ff, 1);
-          createObject(new THREE.Vector3(5, 5, 0), ballMassValue * 2, 0xffff00, 2);
-          break;
-        case 3:
-          createObject(new THREE.Vector3(-5, 5, 0), ballMassValue, 0xff00ff, 1);
-          createObject(new THREE.Vector3(5, 5, 0), ballMassValue, 0x00ffff, 2);
-          break;
-      }
+    function changeMass2() {
+      mass2 = mass2 === 1 ? 3 : 1;
+      alert("Mass changed to " + mass2 + " units (visual demonstration). Observe acceleration with same force.");
+      resetSimulation2();
     }
 
-    function createObject(position, mass, color, index) {
-      let mesh;
-      if(objectShape === "Cube") {
-        const geometry = new THREE.BoxGeometry(3, 3, 3);
-        const material = new THREE.MeshStandardMaterial({ color: color, metalness: 0.2, roughness: 0.3 });
-        mesh = new THREE.Mesh(geometry, material);
-      } else {
-        const geometry = new THREE.SphereGeometry(1.5, 32, 32);
-        const material = new THREE.MeshStandardMaterial({ color: color, metalness: 0.2, roughness: 0.3 });
-        mesh = new THREE.Mesh(geometry, material);
-      }
-      mesh.castShadow = true;
-      mesh.position.copy(position);
-
-      const markerGeom = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(1.5, 0, 0)
-      ]);
-      const markerMat = new THREE.LineBasicMaterial({ color: 0xffffff });
-      const markerLine = new THREE.Line(markerGeom, markerMat);
-      mesh.add(markerLine);
-      mesh.userData.marker = markerLine;
-
-      scene.add(mesh);
-      const body = new PhysicsBody(mesh, mass, index);
-      physicsObjects.push(body);
-      return body;
+    function resetSimulation2() {
+      forceLevel2 = 0;
+      cube2.position.set(0, 0, 0);
     }
 
-    // ----------------- Input Handlers -----------------
-    function setupInputHandlers() {
-      renderer.domElement.addEventListener('mousedown', onPointerDown);
-      renderer.domElement.addEventListener('mousemove', onPointerMove);
-      renderer.domElement.addEventListener('mouseup', onPointerUp);
-      renderer.domElement.addEventListener('touchstart', onPointerDown);
-      renderer.domElement.addEventListener('touchmove', onPointerMove);
-      renderer.domElement.addEventListener('touchend', onPointerUp);
-      renderer.domElement.addEventListener('wheel', onMouseWheel);
+    // --- Simulation 3: Third Law (Action-Reaction) - Elastic Collision with Spheres ---
+    let scene3, camera3, renderer3, sphere3_1, sphere3_2, force3Active = false, collisionDetected = false;
+    let velocity3_1 = 0, velocity3_2 = 0;
+    const initialDistance = 2;  // Center-to-center distance at start
+    const sphereRadius = 0.5;
+    let collisionTimer;
+
+    function initScene3() {
+      scene3 = new THREE.Scene();
+      camera3 = new THREE.PerspectiveCamera(75, simulation3.offsetWidth / simulation3.offsetHeight, 0.1, 1000);
+      renderer3 = new THREE.WebGLRenderer({ antialias: true });
+      renderer3.setSize(simulation3.offsetWidth, simulation3.offsetHeight);
+      simulation3.appendChild(renderer3.domElement);
+      renderer3.setClearColor(0xf0f0f0);
+
+      // Create sphere geometry and materials
+      const widthSegments = 32, heightSegments = 32;
+      const geometry = new THREE.SphereGeometry(sphereRadius, widthSegments, heightSegments);
+      const material1 = new THREE.MeshStandardMaterial({ color: 0x1e90ff }); // DodgerBlue
+      const material2 = new THREE.MeshStandardMaterial({ color: 0xffa500 }); // Orange
+
+      sphere3_1 = new THREE.Mesh(geometry, material1);
+      sphere3_2 = new THREE.Mesh(geometry, material2);
+
+      // Set starting positions along the x-axis
+      sphere3_1.position.x = -initialDistance / 2;
+      sphere3_2.position.x = initialDistance / 2;
+
+      scene3.add(sphere3_1);
+      scene3.add(sphere3_2);
+
+      const ambientLight = new THREE.AmbientLight(0x404040);
+      scene3.add(ambientLight);
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+      directionalLight.position.set(1, 1, 1).normalize();
+      scene3.add(directionalLight);
+
+      camera3.position.z = 5;
+      animate3();
     }
 
-    function onPointerDown(event) {
-      event.preventDefault();
-      if (!simulationRunning) return;
-      const coords = getNormalizedCoords(event);
-      selectObject(coords);
-      touchStartTime = Date.now();
-      touchStartPos.set(coords.x, coords.y);
-    }
+    function animate3() {
+      requestAnimationFrame(animate3);
 
-    function onPointerMove(event) {
-      event.preventDefault();
-      if (!selectedObject || !simulationRunning) return;
-      const coords = getNormalizedCoords(event);
-      const intersection = getGroundIntersection(coords);
-      if (intersection) {
-        if(!threeDMode) intersection.z = 0;
-        selectedObject.mesh.position.copy(intersection);
-      }
-    }
+      // Update positions along the x-axis
+      sphere3_1.position.x += velocity3_1;
+      sphere3_2.position.x += velocity3_2;
 
-    function onPointerUp(event) {
-      event.preventDefault();
-      if (!selectedObject || !simulationRunning) return;
-      const coords = getNormalizedCoords(event);
-      const delta = new THREE.Vector2().subVectors(coords, touchStartPos);
-      const duration = Date.now() - touchStartTime;
-      selectedObject.velocity.copy(
-        new THREE.Vector3(delta.x * 1.5, delta.y * 1.5, 0).multiplyScalar(20 / duration)
-      );
-      selectedObject = null;
-    }
+      // Check for collision (when the distance between centers is less than or equal to the sum of radii)
+      if (force3Active && !collisionDetected) {
+        if (sphere3_2.position.x - sphere3_1.position.x <= sphereRadius * 2) {
+          collisionDetected = true;
+          force3Active = false;
 
-    function onMouseWheel(event) {
-      camera.position.z += event.deltaY * 0.1;
-    }
+          // For equal masses in a 1D elastic collision, simply swap velocities.
+          let temp = velocity3_1;
+          velocity3_1 = velocity3_2;
+          velocity3_2 = temp;
 
-    function getNormalizedCoords(event) {
-      const rect = renderer.domElement.getBoundingClientRect();
-      return {
-        x: (((event.clientX || event.touches[0].clientX) - rect.left) / rect.width) * 2 - 1,
-        y: -(((event.clientY || event.touches[0].clientY) - rect.top) / rect.height) * 2 + 1
-      };
-    }
+          // Change both sphere colors to red on collision
+          sphere3_1.material.color.setHex(0xff0000);
+          sphere3_2.material.color.setHex(0xff0000);
 
-    function selectObject(coords) {
-      const raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera(new THREE.Vector2(coords.x, coords.y), camera);
-      const intersects = raycaster.intersectObjects(physicsObjects.map(b => b.mesh));
-      if (intersects.length > 0) {
-        selectedObject = physicsObjects.find(b => b.mesh === intersects[0].object);
-      }
-    }
-
-    function getGroundIntersection(coords) {
-      const raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera(new THREE.Vector2(coords.x, coords.y), camera);
-      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-      const intersection = new THREE.Vector3();
-      raycaster.ray.intersectPlane(plane, intersection);
-      return intersection;
-    }
-
-    // ----------------- Force Application -----------------
-    function applyForceToSelected() {
-      if (!simulationRunning || !selectedObject) return;
-      let forceVector;
-      if (selectedObject.index === 1) {
-        forceVector = new THREE.Vector3(forceDirectionXValueBall1, forceDirectionYBall1, 0)
-          .normalize().multiplyScalar(forceStrengthValue);
-      } else if (selectedObject.index === 2) {
-        forceVector = new THREE.Vector3(forceDirectionXValueBall2, forceDirectionYBall2, 0)
-          .normalize().multiplyScalar(forceStrengthValue);
-      } else return;
-      selectedObject.applyForce(forceVector);
-      forceArrow.position.copy(selectedObject.mesh.position);
-      forceArrowVisualization(forceVector);
-    }
-
-    function applyForceToBall1() {
-      if (!simulationRunning || physicsObjects.length < 1) return;
-      const ball1 = physicsObjects.find(body => body.index === 1);
-      if (!ball1) return;
-      const forceVector = new THREE.Vector3(forceDirectionXValueBall1, forceDirectionYBall1, 0)
-        .normalize().multiplyScalar(forceStrengthValue);
-      ball1.applyForce(forceVector);
-      forceArrow.position.copy(ball1.mesh.position);
-      forceArrowVisualization(forceVector);
-    }
-
-    function applyForceToBall2() {
-      if (!simulationRunning || physicsObjects.length < 2) return;
-      const ball2 = physicsObjects.find(body => body.index === 2);
-      if (!ball2) return;
-      const forceVector = new THREE.Vector3(forceDirectionXValueBall2, forceDirectionYBall2, 0)
-        .normalize().multiplyScalar(forceStrengthValue);
-      ball2.applyForce(forceVector);
-      forceArrow.position.copy(ball2.mesh.position);
-      forceArrowVisualization(forceVector);
-    }
-
-    function forceArrowVisualization(forceVector) {
-      forceArrow.setDirection(forceVector.clone().normalize());
-      forceArrow.setLength(forceVector.length() / 200);
-      forceArrow.visible = true;
-      setTimeout(() => { forceArrow.visible = false; }, 500);
-    }
-
-    // ----------------- UI Control Setters -----------------
-    function setFriction(value) {
-      frictionCoefficient = parseFloat(value);
-      document.getElementById('frictionValue').textContent = parseFloat(value).toFixed(2);
-    }
-    function setDrag(value) {
-      dragCoefficient = parseFloat(value);
-      document.getElementById('dragValue').textContent = parseFloat(value).toFixed(2);
-    }
-    function setForceValue(value) {
-      forceStrengthValue = parseFloat(value);
-      document.getElementById('forceValue').textContent = value;
-    }
-    function setForceDirectionXBall1(value) {
-      forceDirectionXValueBall1 = parseFloat(value);
-      document.getElementById('forceDirXValueBall1').textContent = parseFloat(value).toFixed(1);
-    }
-    function setForceDirectionYBall1(value) {
-      forceDirectionYBall1 = parseFloat(value);
-      document.getElementById('forceDirYValueBall1').textContent = parseFloat(value).toFixed(1);
-    }
-    function setForceDirectionXBall2(value) {
-      forceDirectionXValueBall2 = parseFloat(value);
-      document.getElementById('forceDirXValueBall2').textContent = parseFloat(value).toFixed(1);
-    }
-    function setForceDirectionYBall2(value) {
-      forceDirectionYBall2 = parseFloat(value);
-      document.getElementById('forceDirYValueBall2').textContent = parseFloat(value).toFixed(1);
-    }
-    function setMassValue(value) {
-      ballMassValue = parseFloat(value);
-      document.getElementById('massValue').textContent = value;
-      resetScene();
-    }
-    function setRestitution(value) {
-      restitutionCoefficient = parseFloat(value);
-      document.getElementById('restitutionValue').textContent = parseFloat(value).toFixed(2);
-    }
-    function setIntegrationMethod(value) {
-      integrationMethod = value;
-    }
-    function toggleDarkMode() {
-      darkMode = document.getElementById('darkModeCheckbox').checked;
-      document.body.classList.toggle("dark-mode", darkMode);
-    }
-    function setObjectShape(value) {
-      objectShape = value;
-      resetScene();
-    }
-    function setRotationDamping(value) {
-      rotationDamping = parseFloat(value);
-      document.getElementById('rotationDampingValue').textContent = parseFloat(value).toFixed(2);
-    }
-    function setGravityField(value) {
-      gravityStrength = parseFloat(value);
-    }
-    function toggleGravity() {
-      gravityEnabled = document.getElementById('gravityCheckbox').checked;
-    }
-    function toggle3DMode() {
-      threeDMode = document.getElementById('threeDModeCheckbox').checked;
-    }
-
-    // ----------------- Scene Reset & Scenario Change -----------------
-    function resetScene() {
-      setupScenario(currentScenario);
-      selectedObject = null;
-    }
-    function changeScenario() {
-      const scenarioValue = parseInt(document.getElementById('scenario').value);
-      currentScenario = scenarioValue;
-      setupScenario(currentScenario);
-      simulationRunning = (currentScenario !== 0);
-      toggleGuide(currentScenario === 0);
-      selectedObject = null;
-    }
-    function toggleGuide(forceVisible = null) {
-      const guide = document.getElementById('guide');
-      if (forceVisible !== null) {
-        guide.style.display = forceVisible ? 'block' : 'none';
-      } else {
-        guide.style.display = guide.style.display === 'none' ? 'block' : 'none';
-      }
-    }
-
-    // ----------------- Collision Detection & Resolution -----------------
-    function checkCollisions() {
-      for (let i = 0; i < physicsObjects.length; i++) {
-        for (let j = i + 1; j < physicsObjects.length; j++) {
-          const a = physicsObjects[i];
-          const b = physicsObjects[j];
-          const diff = new THREE.Vector3().subVectors(b.mesh.position, a.mesh.position);
-          const distance = diff.length();
-          const minDist = 3;
-          if (distance < minDist) {
-            const normal = diff.clone().normalize();
-            const overlap = minDist - distance;
-            const totalInvMass = (1 / a.mass) + (1 / b.mass);
-            const correctionA = normal.clone().multiplyScalar(-overlap * (1 / a.mass) / totalInvMass);
-            const correctionB = normal.clone().multiplyScalar(overlap * (1 / b.mass) / totalInvMass);
-            a.mesh.position.add(correctionA);
-            b.mesh.position.add(correctionB);
-            const relativeVelocity = a.velocity.clone().sub(b.velocity);
-            const velAlongNormal = relativeVelocity.dot(normal);
-            if (velAlongNormal > 0) continue;
-            const effectiveRestitution = Math.min(a.restitution, b.restitution);
-            const impulseScalar = -(1 + effectiveRestitution) * velAlongNormal / totalInvMass;
-            const impulse = normal.clone().multiplyScalar(impulseScalar);
-            a.velocity.add(impulse.clone().multiplyScalar(1 / a.mass));
-            b.velocity.sub(impulse.clone().multiplyScalar(1 / b.mass));
-            const angKickA = impulse.length() / (a.mass * 1.5) * (Math.random() < 0.5 ? -1 : 1);
-            const angKickB = impulse.length() / (b.mass * 1.5) * (Math.random() < 0.5 ? -1 : 1);
-            a.angularVelocity += angKickA;
-            b.angularVelocity += angKickB;
-            let collisionSound = document.getElementById("collisionSound");
-            if(collisionSound) { collisionSound.currentTime = 0; collisionSound.play(); }
-          }
+          clearTimeout(collisionTimer);
+          collisionTimer = setTimeout(() => {
+            // Revert to original colors
+            sphere3_1.material.color.setHex(0x1e90ff);
+            sphere3_2.material.color.setHex(0xffa500);
+            collisionDetected = false;
+          }, 500);
         }
       }
+
+      renderer3.render(scene3, camera3);
     }
 
-    // ----------------- Boundary Handling -----------------
-    function handleBoundary(body) {
-      if (body.mesh.position.y < 1.1) {
-        body.mesh.position.y = 1.1;
-        body.velocity.y *= -body.restitution;
+    function applyForce3() {
+      if (!force3Active && !collisionDetected) {
+        force3Active = true;
+        // Initiate spheres with velocities towards each other
+        velocity3_1 = 0.015;
+        velocity3_2 = -0.015;
       }
     }
 
-    // ----------------- Data Graphing -----------------
-    function updateGraph(ctx, history, maxVal) {
-      if (history.length === 0) return;  // Prevent error if history is empty
-      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      ctx.beginPath();
-      ctx.moveTo(0, ctx.canvas.height - (history[0] / maxVal) * ctx.canvas.height);
-      for (let i = 1; i < history.length; i++) {
-        const x = (i / maxHistory) * ctx.canvas.width;
-        const y = ctx.canvas.height - (history[i] / maxVal) * ctx.canvas.height;
-        ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-    }
-    function updateAllGraphs() {
-      updateGraph(graphCtx, keHistory, maxKineticEnergyDisplay);
-      updateGraph(momentumCtx, momentumHistory, 5000);
-      updateGraph(accelerationCtx, accelerationHistory, 100);
+    function resetSimulation3() {
+      force3Active = false;
+      collisionDetected = false;
+      velocity3_1 = 0;
+      velocity3_2 = 0;
+      sphere3_1.position.set(-initialDistance / 2, 0, 0);
+      sphere3_2.position.set(initialDistance / 2, 0, 0);
+      sphere3_1.material.color.setHex(0x1e90ff);
+      sphere3_2.material.color.setHex(0xffa500);
+      clearTimeout(collisionTimer);
     }
 
-    // ----------------- Animation Loop -----------------
-    let touchStartTime = 0;
-    let touchStartPos = new THREE.Vector2();
-    const graphCtx = document.getElementById('dataGraph').getContext('2d');
-    const momentumCtx = document.getElementById('momentumGraph').getContext('2d');
-    const accelerationCtx = document.getElementById('accelerationGraph').getContext('2d');
+    // Initialize simulations
+    document.addEventListener('DOMContentLoaded', () => {
+      const simulation1 = document.getElementById('simulation1');
+      const simulation2 = document.getElementById('simulation2');
+      const simulation3 = document.getElementById('simulation3');
 
-    function animate() {
-      requestAnimationFrame(animate);
-      const deltaTime = Math.min(0.016, clock.getDelta());
-      let maxKE = 0;
-      let maxMomentum = 0;
-      let maxAcceleration = 0;
-      
-      physicsObjects.forEach(body => body.restitution = restitutionCoefficient);
-      
-      physicsObjects.forEach(body => {
-        body.update(deltaTime);
-        handleBoundary(body);
-        maxKE = Math.max(maxKE, body.getKineticEnergy());
-        const mom = body.velocity.length() * body.mass;
-        maxMomentum = Math.max(maxMomentum, mom);
-        maxAcceleration = Math.max(maxAcceleration, body.lastAcceleration.length());
-      });
-      
-      if (physicsObjects.length > 1) {
-        checkCollisions();
-      }
-      physicsObjects.forEach(body => {
-        const normalizedKE = Math.min(1, maxKE / maxKineticEnergyDisplay);
-        body.updateColorBasedOnKE(normalizedKE);
-      });
-      
-      if (selectedObject) {
-        const acc = selectedObject.lastAcceleration.clone();
-        if (acc.length() > 0.001) {
-          accelerationArrow.setDirection(acc.normalize());
-          accelerationArrow.setLength(acc.length() * 5);
-          accelerationArrow.position.copy(selectedObject.mesh.position);
-          accelerationArrow.visible = true;
-        } else {
-          accelerationArrow.visible = false;
-        }
-        const momentum = selectedObject.velocity.clone().multiplyScalar(selectedObject.mass);
-        if (momentum.length() > 0.001) {
-          momentumArrow.setDirection(momentum.normalize());
-          momentumArrow.setLength(momentum.length() / 50);
-          momentumArrow.position.copy(selectedObject.mesh.position);
-          momentumArrow.visible = true;
-        } else {
-          momentumArrow.visible = false;
-        }
-      } else {
-        accelerationArrow.visible = false;
-        momentumArrow.visible = false;
-      }
-      
-      document.getElementById('keValue').textContent = maxKE.toFixed(0);
-      
-      keHistory.push(maxKE);
-      if (keHistory.length > maxHistory) keHistory.shift();
-      momentumHistory.push(maxMomentum);
-      if (momentumHistory.length > maxHistory) momentumHistory.shift();
-      accelerationHistory.push(maxAcceleration);
-      if (accelerationHistory.length > maxHistory) accelerationHistory.shift();
-      
-      updateAllGraphs();
-      renderer.render(scene, camera);
-    }
-
-    // ----------------- Export Data -----------------
-    function exportData() {
-      const data = {
-        kineticEnergyHistory: keHistory,
-        momentumHistory: momentumHistory,
-        accelerationHistory: accelerationHistory
-      };
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
-      const downloadAnchorNode = document.createElement('a');
-      downloadAnchorNode.setAttribute("href", dataStr);
-      downloadAnchorNode.setAttribute("download", "simulation_data.json");
-      document.body.appendChild(downloadAnchorNode);
-      downloadAnchorNode.click();
-      downloadAnchorNode.remove();
-    }
-
-    // ----------------- Initialize & Resize -----------------
-    init();
-    animate();
-
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      if (simulation1) initScene1();
+      if (simulation2) initScene2();
+      if (simulation3) initScene3();
     });
+
+    // Handle window resize
+    function onWindowResize() {
+      if (camera1 && renderer1 && simulation1) {
+        camera1.aspect = simulation1.offsetWidth / simulation1.offsetHeight;
+        camera1.updateProjectionMatrix();
+        renderer1.setSize(simulation1.offsetWidth, simulation1.offsetHeight);
+      }
+      if (camera2 && renderer2 && simulation2) {
+        camera2.aspect = simulation2.offsetWidth / simulation2.offsetHeight;
+        camera2.updateProjectionMatrix();
+        renderer2.setSize(simulation2.offsetWidth, simulation2.offsetHeight);
+      }
+      if (camera3 && renderer3 && simulation3) {
+        camera3.aspect = simulation3.offsetWidth / simulation3.offsetHeight;
+        camera3.updateProjectionMatrix();
+        renderer3.setSize(simulation3.offsetWidth, simulation3.offsetHeight);
+      }
+    }
+
+    window.addEventListener('resize', onWindowResize, false);
   </script>
 </body>
 </html>
